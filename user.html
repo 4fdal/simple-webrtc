@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>User Terhubung Ke Channel</title>
+    </head>
+    <body>
+        <div>
+            <h1>Init Answer Server</h1>
+            <textarea name="data-answer" id="" cols="30" rows="10"></textarea>
+            <br>
+        </div>
+
+        <div>
+            <h1>Join Offer Server</h1>
+            <textarea name="data-offer" id="" cols="30" rows="10"></textarea>
+            <br>
+            <button name="btn-connection">Connect</button>
+        </div>
+
+
+        <div>
+            <h1 id="chat-title">Chat</h1>
+            <p id="chat"></p>
+            <br>
+            <input type="text" name="message">
+            <br>
+            <button name="btn-send">send</button>
+        </div>
+    </body>
+
+    <script>
+
+        const txtDataAnswer = document.querySelector("textarea[name='data-answer']")
+        const txtDataOffer = document.querySelector("textarea[name='data-offer']")
+        const btnConnection = document.querySelector("button[name='btn-connection']")
+
+        const remote = new RTCPeerConnection()
+
+        remote.onicecandidate = e => {
+            txtDataAnswer.innerText = JSON.stringify(remote.localDescription)
+        }
+
+        btnConnection.addEventListener('click', async e => {
+            let serverOffer = JSON.parse(txtDataOffer.value) 
+
+            // set remote protokol tdp server pada client
+            // untuk melkuakn remote terhadap server
+            // ini adalah rdp protocol
+            await remote.setRemoteDescription(serverOffer)
+
+            // berikan jawan atas offer yang diberikan server kemudian set offer diri sendiri sebgai answer
+            // ini adalah rdp protocol
+            let answer = await remote.createAnswer()
+            await remote.setLocalDescription(answer)
+
+        })
+
+        const chatTittle = document.querySelector('#chat-title')
+        const chat = document.querySelector('#chat')
+        const message = document.querySelector("input[name='message']")
+        const btnSend = document.querySelector("button[name='btn-send']")
+
+        // function otomatis di panggil, jika nanti terdapat data canel pada pada permintaan server
+        remote.ondatachannel = e => {
+            remote.dataChannel = e.channel
+            remote.dataChannel.onmessage = e => {
+                console.log("pesan dari server yang buat canel "+e.data)
+                chat.innerHTML += "<br/> Server : "+e.data
+            }
+            remote.dataChannel.onopen = e => {
+                console.log("[client] Koneksi Terbuka")
+                chatTittle.innerText += " [Terhubung Dengan Server] " 
+            }
+        }
+
+        btnSend.addEventListener('click', e => {
+            remote.dataChannel.send(message.value)
+
+            // server push message to p element html
+            chat.innerHTML += "<br/> Client : "+message.value
+            
+            // reset message
+            message.value = ""
+        })
+        
+    </script>
+</html>

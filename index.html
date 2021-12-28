@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Penyedia Canel</title>
+    </head>
+    <body>
+        <div>
+            <h1>Init Offer Server</h1>
+            <textarea name="data-offer" id="" cols="30" rows="10"></textarea>
+            <br>
+            <button name="btn-create-offer">Create Offer Server</button>
+        </div>
+
+        <div>
+            <h1>Join Answer Server</h1>
+            <textarea name="data-answer" id="" cols="30" rows="10"></textarea>
+            <br>
+            <button name="btn-connection">Connect</button>
+        </div>
+
+
+        <div>
+            <h1 id="chat-title">Chat</h1>
+            <p id="chat"></p>
+            <br>
+            <input type="text" name="message">
+            <br>
+            <button name="btn-send">send</button>
+        </div>
+    </body>
+
+    <script>
+
+        const txtDataOffer = document.querySelector("textarea[name='data-offer']")
+        const btnCreateDataOffer = document.querySelector("button[name='btn-create-offer']")
+        const txtDataAnswer = document.querySelector("textarea[name='data-answer']")
+        const btnConnection = document.querySelector("button[name='btn-connection']")
+
+        const local = new RTCPeerConnection()
+        const dataChannel = local.createDataChannel('server-data-channel')
+
+        // jika set description dengan offer maka ini akan tampil
+        local.onicecandidate = e => {
+            // server buat protokol rdp baru
+            txtDataOffer.innerText = JSON.stringify(local.localDescription) 
+        }
+
+        // set local dengan offer server dengan menekan tombol create offer server
+        btnCreateDataOffer.addEventListener('click', async e => {
+            try {
+                let offer = await local.createOffer()
+                await local.setLocalDescription(offer)
+            } catch (error) {
+                console.error(error.track)
+            }
+        })
+
+        // join to server 
+        btnConnection.addEventListener('click', e => {
+            const answerClient = JSON.parse(txtDataAnswer.value)
+
+            // lakukan remote ke client
+            local.setRemoteDescription(answerClient)
+        })
+
+        const chatTittle = document.querySelector('#chat-title')
+        const chat = document.querySelector('#chat')
+        const message = document.querySelector("input[name='message']")
+        const btnSend = document.querySelector("button[name='btn-send']")
+        
+        btnSend.addEventListener('click', e => {
+            dataChannel.send(message.value)
+            
+            // server push message to p element html
+            chat.innerHTML += "<br/> Server : "+message.value
+
+            // reset message
+            message.value = ""
+        })
+ 
+        // akan otomatis dijalankan jika akan menerima pesan dari client
+        dataChannel.onmessage = e => {
+            console.log("Pesan dari client yang join canel : "+e.data)
+            chat.innerHTML += "<br/> Client : "+e.data
+        }
+        
+        // akan otomatis dijalankan jika client berhasil terhubung ke client
+        dataChannel.onopen = e => {
+            console.log("[server] Koneksi terbuka") 
+            chatTittle.innerText += " [Terhubung Dengan Client] " 
+        }   
+
+    </script>
+</html>
